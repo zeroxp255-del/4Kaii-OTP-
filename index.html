@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaiiOTP Dashboard</title>
+<style>
+  :root{
+    --bg:#0a0e17; --panel:#111827; --panel2:#1f2937; --border:#374151;
+    --accent:#10b981; --accent2:#3b82f6; --danger:#ef4444;
+    --text:#e5e7eb; --muted:#9ca3af;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Segoe UI',system-ui,sans-serif;
+    line-height:1.6; padding:20px; min-height:100vh;
+  }
+  header{
+    text-align:center; padding:25px 10px;
+    border-bottom:1px solid var(--border); margin-bottom:25px;
+  }
+  header h1{font-size:1.8rem;color:var(--accent)}
+  header p{color:var(--muted);margin-top:6px;font-size:.9rem}
+  .container{max-width:1000px;margin:0 auto}
+  .card{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:12px; padding:22px; margin-bottom:20px;
+  }
+  .card h2{
+    color:var(--accent2); font-size:1.15rem;
+    margin-bottom:15px; display:flex; align-items:center; gap:8px;
+  }
+  label{display:block;margin:10px 0 5px;font-size:.85rem;color:var(--muted)}
+  input,select,textarea{
+    width:100%; padding:10px; background:var(--bg);
+    border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-family:monospace; font-size:.9rem;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{
+    background:var(--accent); color:#fff; border:none;
+    padding:11px 20px; border-radius:6px; cursor:pointer;
+    font-weight:600; transition:.2s;
+  }
+  button:hover{background:#059669}
+  button.secondary{background:var(--panel2);border:1px solid var(--border)}
+  button.secondary:hover{background:#374151}
+  button.danger{background:var(--danger)}
+  button.danger:hover{background:#dc2626}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:700px){.grid{grid-template-columns:1fr}}
+  .output{
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:6px; padding:14px; margin-top:14px;
+    font-family:monospace; font-size:.82rem;
+    white-space:pre-wrap; word-break:break-all;
+    color:#86efac; max-height:400px; overflow:auto;
+  }
+  .output.err{color:#fca5a5;border-color:#7f1d1d}
+  .balance-box{
+    background:linear-gradient(135deg,#10b98122,#3b82f622);
+    border:1px solid var(--accent); border-radius:10px;
+    padding:20px; text-align:center; margin-top:15px;
+  }
+  .balance-box .label{color:var(--muted);font-size:.85rem}
+  .balance-box .amount{
+    font-size:2rem; font-weight:700; color:var(--accent);
+    margin-top:5px;
+  }
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .tab{
+    padding:9px 16px; background:var(--panel);
+    border:1px solid var(--border); border-radius:6px;
+    cursor:pointer; font-size:.9rem; transition:.2s;
+  }
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+  .note{
+    background:#3b82f611; border-left:3px solid var(--accent2);
+    padding:10px 14px; margin-top:14px; font-size:.82rem;
+    color:var(--muted); border-radius:4px;
+  }
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row > div{flex:1;min-width:180px}
+  .msg{font-size:.85rem;padding:8px 12px;border-radius:6px;margin-top:10px;display:none}
+  .msg.ok{background:#10b98122;color:#86efac;border:1px solid #10b98166;display:block}
+  .msg.err{background:#ef444422;color:#fca5a5;border:1px solid #ef444466;display:block}
+  footer{text-align:center;color:var(--muted);font-size:.8rem;padding:30px 0}
+  code{background:var(--panel2);padding:2px 6px;border-radius:4px;font-size:.85em}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>🌐 KaiiOTP Dashboard</h1>
+  <p>Kelola order OTP, saldo, dan layanan dari API KaiiOTP</p>
+</header>
+
+<div class="card">
+  <h2>🔑 API Key</h2>
+  <label>Masukkan API Key lo</label>
+  <div class="row">
+    <div><input id="apiKey" placeholder="922a0af8d090b32ee2e6114a6e572799" type="password"></div>
+    <div><button onclick="saveKey()">💾 Simpan</button></div>
+    <div><button class="secondary" onclick="loadBalance()">💰 Cek Saldo</button></div>
+  </div>
+  <div class="balance-box" id="balanceBox" style="display:none">
+    <div class="label">Saldo Saat Ini</div>
+    <div class="amount" id="balanceAmount">Rp 0</div>
+  </div>
+  <div class="note">🔒 API Key disimpan di <code>localStorage</code> browser lo. Tidak dikirim ke server manapun selain API KaiiOTP.</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="order">📱 Buat Order</div>
+  <div class="tab" data-tab="otp">📨 Cek OTP</div>
+  <div class="tab" data-tab="cancel">❌ Cancel Order</div>
+  <div class="tab" data-tab="list">📋 Data Negara & Layanan</div>
+</div>
+
+<div class="tab-content active" id="order">
+  <div class="card">
+    <h2>📱 Buat Pesanan OTP Baru</h2>
+    <div class="grid">
+      <div>
+        <label>Negara</label>
+        <select id="orderNegara">
+          <option value="">-- Pilih Negara --</option>
+        </select>
+      </div>
+      <div>
+        <label>Layanan</label>
+        <select id="orderLayanan">
+          <option value="">-- Pilih Layanan --</option>
+        </select>
+      </div>
+      <div>
+        <label>Operator</label>
+        <select id="orderOperator">
+          <option value="any">any</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="createOrder()">➕ Buat Order</button>
+    <div class="msg" id="orderMsg"></div>
+    <div class="output" id="orderOut">Hasil order muncul di sini...</div>
+  </div>
+</div>
+
+<div class="tab-content" id="otp">
+  <div class="card">
+    <h2>📨 Cek OTP untuk Pesanan</h2>
+    <label>Order ID</label>
+    <div class="row">
+      <div><input id="otpId" placeholder="1728868" type="number"></div>
+      <div><button onclick="checkOtp()">🔍 Cek OTP</button></div>
+    </div>
+    <div class="msg" id="otpMsg"></div>
+    <div class="output" id="otpOut">Kode OTP muncul di sini...</div>
+    <div class="note">💡 Simpan Order ID setelah membuat order. Gunakan Order ID yang sama untuk cek OTP dan cancel.</div>
+  </div>
+</div>
+
+<div class="tab-content" id="cancel">
+  <div class="card">
+    <h2>❌ Batalkan Pesanan</h2>
+    <label>Order ID yang mau dibatalkan</label>
+    <div class="row">
+      <div><input id="cancelId" placeholder="1728868" type="number"></div>
+      <div><button class="danger" onclick="cancelOrder()">🚫 Cancel & Refund</button></div>
+    </div>
+    <div class="msg" id="cancelMsg"></div>
+    <div class="output" id="cancelOut">Hasil cancel muncul di sini...</div>
+    <div class="note">⚠️ Cancel akan mengembalikan dana ke saldo lo sesuai harga layanan.</div>
+  </div>
+</div>
+
+<div class="tab-content" id="list">
+  <div class="card">
+    <h2>📋 Daftar Negara, Layanan & Operator</h2>
+    <button onclick="loadNegara()">🌍 Muat Negara</button>
+    <button class="secondary" onclick="loadLayanan()">📦 Muat Layanan</button>
+    <button class="secondary" onclick="loadOperator()">📡 Muat Operator</button>
+    <div class="grid" style="margin-top:15px">
+      <div>
+        <label>Filter Negara (untuk layanan/operator)</label>
+        <select id="filterNegara"><option value="6">6 - Indonesia</option></select>
+      </div>
+    </div>
+    <div class="output" id="listOut">Data muncul di sini...</div>
+  </div>
+</div>
+
+<footer>
+  KaiiOTP Dashboard · Built with ❤️ · API: <code>api.jasaotp.id/v2</code>
+</footer>
+
+</div>
+
+<script>
+const BASE = "https://api.jasaotp.id/v2";
+
+window.addEventListener("DOMContentLoaded", () => {
+  const saved = localStorage.getItem("kaiiotp_api_key");
+  if(saved) document.getElementById("apiKey").value = saved;
+
+  document.querySelectorAll(".tab").forEach(t => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+      document.getElementById(t.dataset.tab).classList.add("active");
+    });
+  });
+
+  loadNegara();
+});
+
+function getKey(){
+  const k = document.getElementById("apiKey").value.trim();
+  if(!k) throw new Error("API Key belum diisi!");
+  return k;
+}
+function saveKey(){
+  const k = getKey();
+  localStorage.setItem("kaiiotp_api_key", k);
+  showMsg("orderMsg","ok","✅ API Key tersimpan di browser.");
+  loadBalance();
+}
+function showMsg(id, type, text){
+  const el = document.getElementById(id);
+  el.className = "msg " + type;
+  el.textContent = text;
+  setTimeout(()=>{el.className="msg";el.textContent="";}, 5000);
+}
+function setOut(id, data, isErr=false){
+  const el = document.getElementById(id);
+  el.className = "output" + (isErr ? " err" : "");
+  el.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+}
+async function apiGet(path, params){
+  const url = new URL(BASE + path);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.append(k,v));
+  const res = await fetch(url.toString());
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
+}
+
+async function loadBalance(){
+  try{
+    const key = getKey();
+    const data = await apiGet("/balance.php", {api_key:key});
+    if(data.success){
+      const saldo = data.data?.saldo ?? 0;
+      document.getElementById("balanceAmount").textContent =
+        "Rp " + saldo.toLocaleString("id-ID");
+      document.getElementById("balanceBox").style.display = "block";
+    } else {
+      alert("Gagal: " + data.message);
+    }
+  }catch(e){
+    alert("Error: " + e.message);
+  }
+}
+
+async function loadNegara(){
+  try{
+    const data = await apiGet("/negara.php", {});
+    if(!data.success){ setOut("listOut", data, true); return; }
+
+    const sel = document.getElementById("orderNegara");
+    const filter = document.getElementById("filterNegara");
+    sel.innerHTML = '<option value="">-- Pilih Negara --</option>';
+    filter.innerHTML = '';
+    data.data.forEach(n => {
+      const opt = `<option value="${n.id_negara}">${n.id_negara} - ${n.nama_negara}</option>`;
+      sel.insertAdjacentHTML("beforeend", opt);
+      filter.insertAdjacentHTML("beforeend", opt);
+    });
+    setOut("listOut", data);
+  }catch(e){ setOut("listOut", "Error: " + e.message, true); }
+}
+
+async function loadLayanan(){
+  try{
+    const negara = document.getElementById("filterNegara").value || "6";
+    const data = await apiGet("/layanan.php", {negara});
+    setOut("listOut", data);
+
+    const sel = document.getElementById("orderLayanan");
+    sel.innerHTML = '<option value="">-- Pilih Layanan --</option>';
+    const obj = data[negara] || data.data?.[negara] || {};
+    Object.entries(obj).forEach(([kode, info]) => {
+      sel.insertAdjacentHTML("beforeend",
+        `<option value="${kode}">${info.layanan} (${kode}) - Rp ${info.harga.toLocaleString("id-ID")} · stok ${info.stok}</option>`);
+    });
+  }catch(e){ setOut("listOut", "Error: " + e.message, true); }
+}
+
+async function loadOperator(){
+  try{
+    const negara = document.getElementById("filterNegara").value || "6";
+    const data = await apiGet("/operator.php", {negara});
+    setOut("listOut", data);
+
+    const sel = document.getElementById("orderOperator");
+    sel.innerHTML = "";
+    const arr = data.data?.[negara] || [];
+    arr.forEach(op => sel.insertAdjacentHTML("beforeend",
+      `<option value="${op}">${op}</option>`));
+  }catch(e){ setOut("listOut", "Error: " + e.message, true); }
+}
+
+async function createOrder(){
+  try{
+    const key = getKey();
+    const negara = document.getElementById("orderNegara").value;
+    const layanan = document.getElementById("orderLayanan").value;
+    const operator = document.getElementById("orderOperator").value || "any";
+    if(!negara || !layanan) throw new Error("Negara dan layanan wajib dipilih!");
+
+    setOut("orderOut", "⏳ Mengirim order...");
+    const data = await apiGet("/order.php", {api_key:key, negara, layanan, operator});
+    setOut("orderOut", data);
+    if(data.success){
+      showMsg("orderMsg","ok",`✅ Order berhasil! ID: ${data.data.order_id} · Nomor: ${data.data.number}`);
+      document.getElementById("otpId").value = data.data.order_id;
+      document.getElementById("cancelId").value = data.data.order_id;
+      loadBalance();
+    } else {
+      showMsg("orderMsg","err","❌ " + data.message);
+    }
+  }catch(e){
+    setOut("orderOut", "Error: " + e.message, true);
+    showMsg("orderMsg","err","❌ " + e.message);
+  }
+}
+
+async function checkOtp(){
+  try{
+    const key = getKey();
+    const id = document.getElementById("otpId").value;
+    if(!id) throw new Error("Order ID wajib diisi!");
+    setOut("otpOut", "⏳ Mengambil OTP...");
+    const data = await apiGet("/sms.php", {api_key:key, id});
+    setOut("otpOut", data);
+    if(data.success){
+      showMsg("otpMsg","ok",`📨 OTP: ${data.data.otp}`);
+    } else {
+      showMsg("otpMsg","err","❌ " + data.message);
+    }
+  }catch(e){
+    setOut("otpOut", "Error: " + e.message, true);
+    showMsg("otpMsg","err","❌ " + e.message);
+  }
+}
+
+async function cancelOrder(){
+  if(!confirm("Yakin mau cancel order ini?")) return;
+  try{
+    const key = getKey();
+    const id = document.getElementById("cancelId").value;
+    if(!id) throw new Error("Order ID wajib diisi!");
+    setOut("cancelOut", "⏳ Membatalkan order...");
+    const data = await apiGet("/cancel.php", {api_key:key, id});
+    setOut("cancelOut", data);
+    if(data.success){
+      showMsg("cancelMsg","ok",`✅ ${data.message}`);
+      loadBalance();
+    } else {
+      showMsg("cancelMsg","err","❌ " + data.message);
+    }
+  }catch(e){
+    setOut("cancelOut", "Error: " + e.message, true);
+    showMsg("cancelMsg","err","❌ " + e.message);
+  }
+}
+</script>
+</body>
+</html>
