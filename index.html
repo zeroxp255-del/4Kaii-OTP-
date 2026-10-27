@@ -242,12 +242,15 @@ function setOut(id, data, isErr=false){
   el.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
 }
 async function apiGet(path, params){
-  const url = new URL(BASE + path);
+  // Ambil origin (domain vercel lo) + /api + path
+  const baseUrl = window.location.origin + BASE + path;
+  const url = new URL(baseUrl);
   Object.entries(params).forEach(([k,v]) => url.searchParams.append(k,v));
+  
   const res = await fetch(url.toString());
   if(!res.ok) throw new Error("HTTP " + res.status);
   return await res.json();
-}
+  }
 
 async function loadBalance(){
   try{
@@ -323,7 +326,7 @@ async function createOrder(){
     if(!negara || !layanan) throw new Error("Negara dan layanan wajib dipilih!");
 
     setOut("orderOut", "⏳ Mengirim order...");
-    const data = await apiGet("/order.php", {api_key:key, negara, layanan, operator});
+    const data = await apiGet("/order.php", {api_key:key, negara, layanan, operator});j
     setOut("orderOut", data);
     if(data.success){
       showMsg("orderMsg","ok",`✅ Order berhasil! ID: ${data.data.order_id} · Nomor: ${data.data.number}`);
